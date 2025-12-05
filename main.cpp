@@ -11,58 +11,48 @@
 
 int main()
 {
-    static constexpr int width = 1280;
-    static constexpr int height = 720;
+    // Config
+    
+    static constexpr int width = 3840;
+    static constexpr int height = 2160;
     static constexpr int fps = 60;
-    static constexpr double duration_sec = 60.0;
+    static constexpr double duration_sec = 50.0;
     static const int total_frames =
         static_cast<int>(duration_sec * fps);
-    
     static const int type = CV_8UC3;
+    static const std::string dir_img =
+        "../../img";
     
-    std::vector<cv::Mat> vec_frames =
-        InSomnia::prepare_frames(
-            width,
-            height,
-            total_frames,
-            type);
+    // Prepare
+    
+    // Snow
     
     static const std::string path_file_snowflake =
-        "../../img/snow.png";
-    // static constexpr int num_snowflakes = 200;
+        dir_img + "/snow.png";
     
-    std::vector<InSomnia::Interval_Snow> schedule =
+    std::vector<InSomnia::Interval_Snow> schedule_snowfall =
     {
         { 5., 10., 200, 0, 0 }
     };
     
-    InSomnia::Snowflake::generate_snow(
+    InSomnia::Snowfall snowfall(
         path_file_snowflake,
-        width,
-        height,
+        schedule_snowfall,
         fps,
-        schedule,
-        // num_snowflakes,
-        vec_frames);
+        total_frames);
+    
+    // Fir
     
     static const std::string path_file_fir =
-        "../../img/tree.png";
+        dir_img + "/tree.png";
     
     static constexpr float coord_fir_x = width * 0.5;
     static constexpr float coord_fir_y = height * 0.5;
     
-    InSomnia::Fir fir;
+    InSomnia::Fir fir(
+        path_file_fir, width, height);
     
-    fir.load(
-        path_file_fir,
-        width,
-        height);
-    
-    fir.generate_fir(
-        fps,
-        coord_fir_x,
-        coord_fir_y,
-        vec_frames);
+    // Light
     
     const cv::Mat &img_fir = fir.get_img();
     
@@ -74,7 +64,34 @@ int main()
         { 0, 255, 255 }  // yellow
     };
     
-    InSomnia::Light light(img_fir, colors_lamps);
+    const std::vector<InSomnia::State_Lamps> vec_state_lamps =
+    {
+        { { false, false, false, true }, 1., 0u },
+        { { false, false, true, false }, 1., 0u },
+        { { false, true, false, false }, 1., 0u },
+        { { true, false, false, false }, 1., 0u },
+        
+        { { false, false, true, true }, 1., 0u },
+        { { false, true, true, false }, 1., 0u },
+        { { true, true, false, false }, 1., 0u },
+        { { true, false, false, true }, 1., 0u },
+        
+        { { false, true, true, true }, 0.5, 0u },
+        { { true, true, true, false }, 0.5, 0u },
+        { { true, true, false, true }, 0.5, 0u },
+        { { true, false, true, true }, 0.5, 0u }
+    };
+    
+    static constexpr double scale = 0.003;
+    
+    InSomnia::Light light(
+        img_fir,
+        colors_lamps,
+        vec_state_lamps,
+        width,
+        height,
+        fps,
+        scale);
     
     const uint32_t count_lamps = 50u;
     light.generate_lights_inside_tree_by_alpha(count_lamps);
@@ -82,36 +99,66 @@ int main()
     light.convert_tree_coords_to_frame_coords(
         coord_fir_x, coord_fir_y);
     
-    // const double time_one_color = 2.;
-    const std::vector<InSomnia::State_Lamps> vec_state_lamps =
-    {
-        { { false, false, false, true }, 1. },
-        { { false, false, true, false }, 1. },
-        { { false, true, false, false }, 1. },
-        { { true, false, false, false }, 1. },
-        
-        { { false, false, true, true }, 1. },
-        { { false, true, true, false }, 1. },
-        { { true, true, false, false }, 1. },
-        { { true, false, false, true }, 1. },
-        
-        { { false, true, true, true }, 0.5 },
-        { { true, true, true, false }, 0.5 },
-        { { true, true, false, true }, 0.5 },
-        { { true, false, true, true }, 0.5 }
-    };
-    light.generate_light(
-        fps, vec_state_lamps, vec_frames);
+    // Video
     
     static const std::string path_file_video =
         "result.mp4";
     
-    InSomnia::write_video_to_file(
+    cv::VideoWriter video_writer(
         path_file_video,
-        width,
-        height,
+        cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 
         fps,
-        vec_frames);
+        cv::Size(width, height));
+    
+    if (!video_writer.isOpened())
+    {
+        throw std::runtime_error(
+            "Ошибка: не удалось открыть VideoWriter\n");
+    }
+    
+    for (uint32_t frame_idx = 0u;
+         frame_idx < total_frames;
+         ++frame_idx)
+    {
+        // const cv::Mat &frame = vec_frames[frame_idx];
+        
+        cv::Mat frame =
+            cv::Mat::zeros(height, width, type);
+        
+        
+        snowfall.render(
+            frame_idx,
+            width,
+            height,
+            frame);
+        
+        
+        fir.render(
+            frame_idx,
+            coord_fir_x,
+            coord_fir_y,
+            frame);
+        
+        light.render(
+            frame_idx,
+            frame);
+        
+        
+        video_writer.write(frame);
+        
+        if ((frame_idx + 1) % fps == 0)
+        {
+            std::cout << std::format(
+                "Записано кадров: {} из {}\n",
+                frame_idx + 1, total_frames);
+            std::cout.flush();
+        }
+    }
+    
+    video_writer.release();
+    
+    std::cout << "Видео сохранено как " << path_file_video << "\n";
+    std::cout.flush();
     
     return 0;
 }

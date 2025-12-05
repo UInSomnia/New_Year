@@ -44,14 +44,14 @@ namespace InSomnia
         
         bool get_remove() const;
         
-        static void generate_snow(
-            const std::string &path_file,
-            const int width,
-            const int height,
-            const int fps,
-            std::vector<Interval_Snow> &schedule,
-            // const int num_snowflakes,
-            std::vector<cv::Mat> &vec_frames);
+        // static void generate_snow(
+        //     const std::string &path_file,
+        //     const int width,
+        //     const int height,
+        //     const int fps,
+        //     std::vector<Interval_Snow> &schedule,
+        //     // const int num_snowflakes,
+        //     std::vector<cv::Mat> &vec_frames);
         
     private:
         bool need_remove;
@@ -65,6 +65,34 @@ namespace InSomnia
         
         cv::Mat base_img;
         cv::Mat rotated_img;
+    };
+    
+    class Snowfall
+    {
+    public:
+        Snowfall();
+        
+        Snowfall(
+            const std::string &path_file,
+            const std::vector<Interval_Snow> &schedule,
+            const int fps,
+            const uint32_t total_frames);
+        
+        void render(
+            const uint32_t frame_idx,
+            const int width,
+            const int height,
+            cv::Mat &frame);
+        
+    private:
+        cv::Mat img_snowflake;
+        std::vector<Interval_Snow> schedule;
+        
+        uint32_t time_create_snowflake;
+        bool is_active;
+        uint32_t idx_schedule;
+        
+        std::vector<Snowflake> snowflakes;
     };
 }
 

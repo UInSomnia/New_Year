@@ -4,18 +4,28 @@ namespace InSomnia
 {
     Light::Light()
     {
+        static constexpr double nan =
+            std::numeric_limits<double>::signaling_NaN();
         
+        this->count_colors          = -1;
+        this->count_state_lamps     = -1;
+        this->diagonal              = nan;
+        this->radius_base           = nan;
+        this->num_mode              = -1;
     }
     
     Light::Light(
         const cv::Mat &tree,
-        const std::vector<cv::Scalar> &colors)
+        const std::vector<cv::Scalar> &colors,
+        const std::vector<InSomnia::State_Lamps> &vec_state_lamps,
+        const int width,
+        const int height,
+        const int fps,
+        const double scale)
     {
         this->tree_img = tree.clone();
-        // cv::imwrite("tree_img.png", this->tree_img);
         
-        const uint32_t count_colors =
-            colors.size();
+        this->count_colors = colors.size();
         
         this->vec_groups_lamps =
             std::vector<Group_Lamps>(count_colors);
@@ -27,13 +37,28 @@ namespace InSomnia
             
             g.color = s;
         }
+        
+        this->vec_state_lamps = vec_state_lamps;
+        
+        this->count_state_lamps =
+            this->vec_state_lamps.size();
+        
+        for (State_Lamps &state : this->vec_state_lamps)
+        {
+            state.limit_frames = state.duration * fps;
+        }
+        
+        this->diagonal = std::sqrt(
+            width * width + height * height);
+        
+        this->radius_base = diagonal * scale; // 0.003
+        
+        this->num_mode = 0u;
     }
     
     void Light::generate_lights_inside_tree_by_alpha(
         const int num_lights)
     {
-        // std::vector<cv::Point2f> lights;
-    
         if (this->tree_img.channels() != 4)
         {
             throw std::runtime_error(
@@ -76,15 +101,6 @@ namespace InSomnia
             }
         }
         
-        // std::cout << "Count: " << lights.size() << "\n";
-        
-        // for (const cv::Point2f &p : this->lights)
-        // {
-        //     std::cout << p.x << " -> " << p.y << "\n";
-        // }
-        
-        // std::cout.flush();
-        
     }
     
     void Light::convert_tree_coords_to_frame_coords(
@@ -120,103 +136,145 @@ namespace InSomnia
         
     }
     
-    void Light::generate_light(
-        const int fps,
-        // const double time_one_color,
-        const std::vector<State_Lamps> &vec_state_lamps,
-        std::vector<cv::Mat> &vec_frames)
-    {
-        if (vec_frames.empty() == true)
+    // void Light::generate_light(
+    //     const int fps,
+    //     const std::vector<State_Lamps> &vec_state_lamps,
+    //     std::vector<cv::Mat> &vec_frames)
+    // {
+    //     if (vec_frames.empty() == true)
+    //     {
+    //         return;
+    //     }
+        
+    //     const cv::Mat &frame_0 = vec_frames.front();
+    //     const double diagonal =
+    //         std::sqrt(
+    //             frame_0.rows * frame_0.rows +
+    //             frame_0.cols * frame_0.cols);
+        
+    //     const uint32_t radius_base =
+    //         diagonal * 0.003;
+        
+    //     const uint32_t total_frames = vec_frames.size();
+        
+    //     const uint32_t count_colors =
+    //         this->vec_groups_lamps.size();
+        
+    //     const uint32_t count_state_lamps =
+    //         vec_state_lamps.size();
+        
+    //     uint32_t num_mode = 0u;
+        
+    //     for (uint32_t frame_idx = 0u; frame_idx < total_frames; ++frame_idx)
+    //     {
+    //         cv::Mat &frame = vec_frames[frame_idx];
+            
+    //         // Рисуем огоньки
+            
+    //         const uint32_t idx_mode = num_mode % count_state_lamps;
+    //         const State_Lamps &mode = vec_state_lamps[idx_mode];
+            
+    //         const std::vector<bool> &vec_state_color =
+    //             mode.vec_state_color;
+    //         const double duration = mode.duration;
+    //         const uint32_t limit_frames_mode =
+    //             duration * fps;
+            
+    //         if (vec_state_color.size() != count_colors)
+    //         {
+    //             throw std::runtime_error(
+    //                 "vec_state_color is incorrect");
+    //         }
+            
+    //         const uint32_t radius =
+    //             // radius_base + 2. * num_mode / count_state_lamps;
+    //             radius_base * (1. + 0.5 * num_mode / count_state_lamps);
+            
+    //         for (uint32_t i = 0u; i < count_colors; ++i)
+    //         {
+    //             const bool b = vec_state_color[i];
+    //             if (b)
+    //             {
+    //                 const Group_Lamps &g = this->vec_groups_lamps[i];
+    //                 const std::vector<cv::Point2f> &lights = g.lights;
+    //                 const cv::Scalar &color = g.color;
+    //                 for (const cv::Point2f &pt : lights)
+    //                 { 
+    //                     cv::circle(frame, pt, radius, color, -1);
+    //                 }
+    //             }
+    //         }
+            
+    //         if ((frame_idx + 1) % limit_frames_mode == 0)
+    //         {
+    //             ++num_mode;
+    //         }
+            
+    //         if ((frame_idx + 1) % fps == 0)
+    //         {
+    //             std::cout << std::format(
+    //                 "Запись гирлянды. Обработано кадров: {} из {}\n",
+    //                 frame_idx + 1, total_frames);
+    //             std::cout.flush();
+    //         }
+    //     }
+    // }
+    
+    void Light::render(
+        const uint32_t frame_idx,
+        cv::Mat &frame)
+    {        
+        const uint32_t idx_mode = this->num_mode % this->count_state_lamps;
+        const State_Lamps &mode = this->vec_state_lamps[idx_mode];
+        
+        const std::vector<bool> &vec_state_color =
+            mode.vec_state_color;
+        // const double duration = mode.duration;
+        // const uint32_t limit_frames_mode =
+        //     duration * fps;
+        const uint32_t limit_frames_mode = mode.limit_frames;
+        
+        if (vec_state_color.size() != this->count_colors)
         {
-            return;
+            throw std::runtime_error(
+                "vec_state_color is incorrect");
         }
         
-        const cv::Mat &frame_0 = vec_frames.front();
-        const double diagonal =
-            std::sqrt(
-                frame_0.rows * frame_0.rows +
-                frame_0.cols * frame_0.cols);
+        const uint32_t radius =
+            // radius_base + 2. * num_mode / count_state_lamps;
+            this->radius_base *
+                (
+                    1. + 0.5 * this->num_mode /
+                    this->count_state_lamps
+                );
         
-        const uint32_t radius_base =
-            diagonal * 0.003;
-        
-        const uint32_t total_frames = vec_frames.size();
-        
-        const uint32_t count_colors =
-            this->vec_groups_lamps.size();
-        
-        const uint32_t count_state_lamps =
-            vec_state_lamps.size();
-        
-        // const uint32_t limit_frames_one_color =
-        //     time_one_color * fps;
-        
-        // uint32_t num_color = 0u;
-        
-        uint32_t num_mode = 0u;
-        
-        for (uint32_t frame_idx = 0u; frame_idx < total_frames; ++frame_idx)
+        for (uint32_t i = 0u; i < this->count_colors; ++i)
         {
-            cv::Mat &frame = vec_frames[frame_idx];
-            
-            // Рисуем огоньки
-            
-            const uint32_t idx_mode = num_mode % count_state_lamps;
-            const State_Lamps &mode = vec_state_lamps[idx_mode];
-            
-            const std::vector<bool> &vec_state_color =
-                mode.vec_state_color;
-            const double duration = mode.duration;
-            const uint32_t limit_frames_mode =
-                duration * fps;
-            
-            if (vec_state_color.size() != count_colors)
+            const bool b = vec_state_color[i];
+            if (b)
             {
-                throw std::runtime_error(
-                    "vec_state_color is incorrect");
-            }
-            
-            const uint32_t radius =
-                // radius_base + 2. * num_mode / count_state_lamps;
-                radius_base * (1. + 0.5 * num_mode / count_state_lamps);
-            
-            for (uint32_t i = 0u; i < count_colors; ++i)
-            {
-                const bool b = vec_state_color[i];
-                if (b)
-                {
-                    const Group_Lamps &g = this->vec_groups_lamps[i];
-                    const std::vector<cv::Point2f> &lights = g.lights;
-                    const cv::Scalar &color = g.color;
-                    for (const cv::Point2f &pt : lights)
-                    { 
-                        cv::circle(frame, pt, radius, color, -1);
-                    }
+                const Group_Lamps &g = this->vec_groups_lamps[i];
+                const std::vector<cv::Point2f> &lights = g.lights;
+                const cv::Scalar &color = g.color;
+                for (const cv::Point2f &pt : lights)
+                { 
+                    cv::circle(frame, pt, radius, color, -1);
                 }
             }
-            
-            // const uint32_t idx_color = num_color % count_colors;
-            // const Group_Lamps &g = this->vec_groups_lamps[idx_color];
-            // const std::vector<cv::Point2f> &lights = g.lights;
-            // const cv::Scalar &color = g.color;
-            // for (const cv::Point2f &pt : lights)
-            // { 
-            //     cv::circle(frame, pt, 3, color, -1);
-            // }
-            
-            if ((frame_idx + 1) % limit_frames_mode == 0)
-            {
-                ++num_mode;
-            }
-            
-            if ((frame_idx + 1) % fps == 0)
-            {
-                std::cout << std::format(
-                    "Запись гирлянды. Обработано кадров: {} из {}\n",
-                    frame_idx + 1, total_frames);
-                std::cout.flush();
-            }
         }
+        
+        if ((frame_idx + 1) % limit_frames_mode == 0)
+        {
+            ++(this->num_mode);
+        }
+        
+        // if ((frame_idx + 1) % fps == 0)
+        // {
+        //     std::cout << std::format(
+        //         "Запись гирлянды. Обработано кадров: {} из {}\n",
+        //         frame_idx + 1, total_frames);
+        //     std::cout.flush();
+        // }
     }
     
 }

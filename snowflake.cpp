@@ -151,22 +151,178 @@ namespace InSomnia
         return this->need_remove;
     }
     
-    void Snowflake::generate_snow(
-        const std::string &path_file,
-        const int width,
-        const int height,
-        const int fps,
-        std::vector<Interval_Snow> &schedule,
-        // const int num_snowflakes,
-        std::vector<cv::Mat> &vec_frames)
+    // void Snowflake::generate_snow(
+    //     const std::string &path_file,
+    //     const int width,
+    //     const int height,
+    //     const int fps,
+    //     std::vector<Interval_Snow> &schedule,
+    //     // const int num_snowflakes,
+    //     std::vector<cv::Mat> &vec_frames)
+    // {
+    //     const uint32_t total_frames = vec_frames.size();
+        
+    //     const cv::Mat snow_img =
+    //         cv::imread(path_file, cv::IMREAD_UNCHANGED);
+        
+    //     // const cv::Mat snow_img =
+    //     //     cv::imread("../../img/snow.png", cv::IMREAD_UNCHANGED);
+        
+    //     if (snow_img.empty())
+    //     {
+    //         throw std::runtime_error(
+    //             "Ошибка: не удалось загрузить файл snow.png\n");
+    //     }
+        
+    //     const cv::Mat snow_img_rgba =
+    //         InSomnia::convert_to_rgba(snow_img);
+        
+    //     const cv::Mat snow_img_rgba_clear =
+    //         InSomnia::clear_alpha(snow_img_rgba);
+        
+    //     if (schedule.empty() == true)
+    //     {
+    //         throw std::runtime_error(
+    //             "Ошибка: schedule пуст\n");
+    //     }
+        
+    //     for (Interval_Snow &interval : schedule)
+    //     {
+    //         interval.idx_frame_start =
+    //             interval.time_start * fps;
+            
+    //         if (interval.idx_frame_finish < 0.)
+    //         {
+    //             interval.idx_frame_finish = total_frames;
+    //         }
+    //         else
+    //         {
+    //             interval.idx_frame_finish =
+    //                 interval.time_finish * fps;
+    //         }
+    //     }
+        
+    //     std::vector<InSomnia::Snowflake> snowflakes;
+        
+    //     const uint32_t time_create_snowflake = 3u;
+        
+    //     bool is_active = false;
+        
+    //     uint32_t idx_schedule = 0u;
+        
+    //     for (uint32_t frame_idx = 0u; frame_idx < total_frames; ++frame_idx)
+    //     {
+    //         cv::Mat &frame = vec_frames[frame_idx];
+            
+    //         uint32_t num_snowflakes = 0u;
+            
+    //         if (idx_schedule < schedule.size())
+    //         {
+    //             if (frame_idx > schedule[idx_schedule].idx_frame_finish)
+    //             {
+    //                 ++idx_schedule;
+    //             }
+    //         }
+            
+    //         if (idx_schedule >= schedule.size())
+    //         {
+    //             // throw std::runtime_error(
+    //             //     "idx_schedule >= schedule.size()");
+                
+    //             is_active = false;
+    //             num_snowflakes = 0u;
+    //         }
+    //         else
+    //         {
+    //             // std::cout << "idx_schedule: " << idx_schedule << "\n";
+    //             // std::cout.flush();
+                
+    //             const Interval_Snow &interval =
+    //                 schedule[idx_schedule];
+                
+    //             if (interval.idx_frame_start == frame_idx)
+    //             {
+    //                 is_active = true;
+    //             }
+    //             if (interval.idx_frame_finish == frame_idx)
+    //             {
+    //                 is_active = false;
+    //             }
+                
+    //             num_snowflakes = interval.count_snowflakes;
+    //         }
+            
+    //         for (InSomnia::Snowflake &sf : snowflakes)
+    //         {
+    //             sf.move();
+                
+    //             sf.rotate();
+                
+    //             sf.draw_to_frame(frame);
+                
+    //             // Перезапуск снежинки при выходе за нижнюю границу
+    //             if (sf.is_out_frame(height))
+    //             {
+    //                 if (is_active == true)
+    //                 {
+    //                     sf = Snowflake(
+    //                         width, height, snow_img_rgba_clear);
+    //                 }
+    //                 else if (snowflakes.size() > 0)
+    //                 {
+    //                     sf.set_remove();
+    //                 }
+    //             }
+    //         }
+            
+    //         if (is_active == false && snowflakes.size() > 0)
+    //         {
+    //             const std::vector<InSomnia::Snowflake>::iterator
+    //             it_new_end = std::remove_if(
+    //                 snowflakes.begin(),
+    //                 snowflakes.end(),
+    //             [](const Snowflake &s) -> bool
+    //             {
+    //                 return s.get_remove();
+    //             });
+                
+    //             snowflakes.erase(it_new_end, snowflakes.end());
+    //         }
+            
+    //         if (snowflakes.size() < num_snowflakes &&
+    //             frame_idx % time_create_snowflake == 0 &&
+    //             is_active == true)
+    //         {
+    //             snowflakes.emplace_back(width, height, snow_img_rgba_clear);
+    //         }
+            
+    //         if ((frame_idx + 1) % fps == 0)
+    //         {
+    //             std::cout << std::format(
+    //                 "Запись снежинок. Обработано кадров: {} из {}\n",
+    //                 frame_idx + 1, total_frames);
+    //             std::cout.flush();
+    //         }
+    //     }
+    // }
+    
+    Snowfall::Snowfall()
     {
-        const uint32_t total_frames = vec_frames.size();
+        this->time_create_snowflake = 0u;
+        this->is_active = false;
+        this->idx_schedule = -1;
+    }
+    
+    Snowfall::Snowfall(
+        const std::string &path_file,
+        const std::vector<Interval_Snow> &schedule,
+        const int fps,
+        const uint32_t total_frames)
+    {
+        // const uint32_t total_frames = vec_frames.size();
         
         const cv::Mat snow_img =
             cv::imread(path_file, cv::IMREAD_UNCHANGED);
-        
-        // const cv::Mat snow_img =
-        //     cv::imread("../../img/snow.png", cv::IMREAD_UNCHANGED);
         
         if (snow_img.empty())
         {
@@ -177,7 +333,7 @@ namespace InSomnia
         const cv::Mat snow_img_rgba =
             InSomnia::convert_to_rgba(snow_img);
         
-        const cv::Mat snow_img_rgba_clear =
+        this->img_snowflake =
             InSomnia::clear_alpha(snow_img_rgba);
         
         if (schedule.empty() == true)
@@ -186,7 +342,9 @@ namespace InSomnia
                 "Ошибка: schedule пуст\n");
         }
         
-        for (Interval_Snow &interval : schedule)
+        this->schedule = schedule;
+        
+        for (Interval_Snow &interval : this->schedule)
         {
             interval.idx_frame_start =
                 interval.time_start * fps;
@@ -200,110 +358,128 @@ namespace InSomnia
                 interval.idx_frame_finish =
                     interval.time_finish * fps;
             }
+            
+            if (interval.idx_frame_finish >= total_frames)
+            {
+                interval.idx_frame_finish = total_frames;
+            }
         }
         
-        std::vector<InSomnia::Snowflake> snowflakes;
-        
-        const uint32_t time_create_snowflake = 3u;
-        
-        bool is_active = false;
-        
-        uint32_t idx_schedule = 0u;
-        
-        for (uint32_t frame_idx = 0u; frame_idx < total_frames; ++frame_idx)
+        const std::vector<Interval_Snow>::iterator it_new_end =
+            std::remove_if(
+                this->schedule.begin(),
+                this->schedule.end(),
+        [total_frames](const Interval_Snow &interval) -> bool
         {
-            cv::Mat &frame = vec_frames[frame_idx];
-            
-            uint32_t num_snowflakes = 0u;
-            
-            if (idx_schedule < schedule.size())
+            return
+                interval.idx_frame_start >= total_frames ||
+                interval.idx_frame_finish >= total_frames ||
+                interval.idx_frame_start >= interval.idx_frame_finish;
+        });
+        this->schedule.erase(it_new_end, this->schedule.end());
+        
+        // std::vector<InSomnia::Snowflake> snowflakes;
+        
+        this->time_create_snowflake = 3u;
+        
+        this->is_active = false;
+        
+        this->idx_schedule = 0u;
+    }
+    
+    void Snowfall::render(
+        const uint32_t frame_idx,
+        const int width,
+        const int height,
+        cv::Mat &frame)
+    {
+        uint32_t num_snowflakes = 0u;
+        
+        if (this->idx_schedule < this->schedule.size())
+        {
+            if (frame_idx > this->schedule[this->idx_schedule].idx_frame_finish)
             {
-                if (frame_idx > schedule[idx_schedule].idx_frame_finish)
-                {
-                    ++idx_schedule;
-                }
-            }
-            
-            if (idx_schedule >= schedule.size())
-            {
-                // throw std::runtime_error(
-                //     "idx_schedule >= schedule.size()");
-                
-                is_active = false;
-                num_snowflakes = 0u;
-            }
-            else
-            {
-                // std::cout << "idx_schedule: " << idx_schedule << "\n";
-                // std::cout.flush();
-                
-                const Interval_Snow &interval =
-                    schedule[idx_schedule];
-                
-                if (interval.idx_frame_start == frame_idx)
-                {
-                    is_active = true;
-                }
-                if (interval.idx_frame_finish == frame_idx)
-                {
-                    is_active = false;
-                }
-                
-                num_snowflakes = interval.count_snowflakes;
-            }
-            
-            for (InSomnia::Snowflake &sf : snowflakes)
-            {
-                sf.move();
-                
-                sf.rotate();
-                
-                sf.draw_to_frame(frame);
-                
-                // Перезапуск снежинки при выходе за нижнюю границу
-                if (sf.is_out_frame(height))
-                {
-                    if (is_active == true)
-                    {
-                        sf = Snowflake(
-                            width, height, snow_img_rgba_clear);
-                    }
-                    else if (snowflakes.size() > 0)
-                    {
-                        sf.set_remove();
-                    }
-                }
-            }
-            
-            if (is_active == false && snowflakes.size() > 0)
-            {
-                const std::vector<InSomnia::Snowflake>::iterator
-                it_new_end = std::remove_if(
-                    snowflakes.begin(),
-                    snowflakes.end(),
-                [](const Snowflake &s) -> bool
-                {
-                    return s.get_remove();
-                });
-                
-                snowflakes.erase(it_new_end, snowflakes.end());
-            }
-            
-            if (snowflakes.size() < num_snowflakes &&
-                frame_idx % time_create_snowflake == 0 &&
-                is_active == true)
-            {
-                snowflakes.emplace_back(width, height, snow_img_rgba_clear);
-            }
-            
-            if ((frame_idx + 1) % fps == 0)
-            {
-                std::cout << std::format(
-                    "Запись снежинок. Обработано кадров: {} из {}\n",
-                    frame_idx + 1, total_frames);
-                std::cout.flush();
+                ++idx_schedule;
             }
         }
+        
+        if (this->idx_schedule >= this->schedule.size())
+        {
+            this->is_active = false;
+            num_snowflakes = 0u;
+        }
+        else
+        {
+            const Interval_Snow &interval =
+                this->schedule[this->idx_schedule];
+            
+            if (interval.idx_frame_start == frame_idx)
+            {
+                this->is_active = true;
+            }
+            if (interval.idx_frame_finish == frame_idx)
+            {
+                this->is_active = false;
+            }
+            
+            num_snowflakes = interval.count_snowflakes;
+        }
+        
+        for (InSomnia::Snowflake &sf : this->snowflakes)
+        {
+            sf.move();
+            
+            sf.rotate();
+            
+            sf.draw_to_frame(frame);
+            
+            // Перезапуск снежинки при выходе за нижнюю границу
+            if (sf.is_out_frame(height))
+            {
+                if (is_active == true)
+                {
+                    sf = Snowflake(
+                        width, height, this->img_snowflake);
+                }
+                else if (this->snowflakes.size() > 0)
+                {
+                    sf.set_remove();
+                }
+            }
+        }
+        
+        if (this->is_active == false &&
+            this->snowflakes.size() > 0)
+        {
+            const std::vector<InSomnia::Snowflake>::iterator
+            it_new_end = std::remove_if(
+                this->snowflakes.begin(),
+                this->snowflakes.end(),
+            [](const Snowflake &s) -> bool
+            {
+                return s.get_remove();
+            });
+            
+            this->snowflakes.erase(
+                it_new_end, this->snowflakes.end());
+        }
+        
+        if (this->snowflakes.size() < num_snowflakes &&
+            frame_idx % time_create_snowflake == 0 &&
+            this->is_active == true)
+        {
+            this->snowflakes.emplace_back(
+                width, height, this->img_snowflake);
+        }
+        
+        // if ((frame_idx + 1) % fps == 0)
+        // {
+        //     std::cout << std::format(
+        //         "Запись снежинок. Обработано кадров: {} из {}\n",
+        //         frame_idx + 1, total_frames);
+        //     std::cout.flush();
+        // }
+        
     }
     
 }
