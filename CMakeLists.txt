@@ -7,11 +7,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(OpenCV REQUIRED)
 
-file(GLOB HEADERS "*.h")
-file(GLOB SOURCES "*.cpp")
+file(GLOB HEADERS "src/*.h")
+file(GLOB SOURCES "src/*.cpp")
 add_executable(${PROJECT_NAME}
 	${HEADERS}
 	${SOURCES}
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME}
+	PRIVATE
+	${OpenCV_LIBS})
