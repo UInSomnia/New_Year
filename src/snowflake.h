@@ -1,7 +1,7 @@
 #ifndef INSOMNIA_SNOWFLAKE_H
 #define INSOMNIA_SNOWFLAKE_H
 
-#include <iostream>
+// #include <iostream>
 #include <limits>
 #include <random>
 #include <vector>

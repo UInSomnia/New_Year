@@ -349,19 +349,16 @@ namespace InSomnia
             interval.idx_frame_start =
                 interval.time_start * fps;
             
+            interval.idx_frame_finish =
+                interval.time_finish * fps;
+            
             if (interval.idx_frame_finish < 0.)
             {
-                interval.idx_frame_finish = total_frames;
+                interval.idx_frame_finish = total_frames - 1;
             }
-            else
+            else if (interval.idx_frame_finish >= total_frames)
             {
-                interval.idx_frame_finish =
-                    interval.time_finish * fps;
-            }
-            
-            if (interval.idx_frame_finish >= total_frames)
-            {
-                interval.idx_frame_finish = total_frames;
+                interval.idx_frame_finish = total_frames - 1;
             }
         }
         
@@ -371,12 +368,19 @@ namespace InSomnia
                 this->schedule.end(),
         [total_frames](const Interval_Snow &interval) -> bool
         {
+            // std::cout << "interval.idx_frame_start: " << interval.idx_frame_start << "\n";
+            // std::cout << "interval.idx_frame_finish: " << interval.idx_frame_finish << "\n";
+            // std::cout << "interval.idx_frame_start: " << interval.idx_frame_start << "\n";
+            
             return
                 interval.idx_frame_start >= total_frames ||
                 interval.idx_frame_finish >= total_frames ||
                 interval.idx_frame_start >= interval.idx_frame_finish;
         });
         this->schedule.erase(it_new_end, this->schedule.end());
+        
+        // std::cout << "this->schedule.size(): " << this->schedule.size() << "\n";
+        // std::cout.flush();
         
         // std::vector<InSomnia::Snowflake> snowflakes;
         

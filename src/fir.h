@@ -15,7 +15,8 @@ namespace InSomnia
         Fir(
             const std::string &path_file,
             const int width,
-            const int height);
+            const int height,
+            const float scale);
         
         // void generate_fir(
         //     const int fps,
@@ -37,7 +38,8 @@ namespace InSomnia
         void load(
             const std::string &path_file,
             const int width,
-            const int height);
+            const int height,
+            const float scale);
     };
 }
 

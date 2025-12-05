@@ -11,9 +11,10 @@ namespace InSomnia
     Fir::Fir(
         const std::string &path_file,
         const int width,
-        const int height)
+        const int height,
+        const float scale)
     {
-        this->load(path_file, width, height);
+        this->load(path_file, width, height, scale);
     }
     
     // void Fir::generate_fir(
@@ -61,7 +62,8 @@ namespace InSomnia
     void Fir::load(
         const std::string &path_file,
         const int width,
-        const int height)
+        const int height,
+        const float scale)
     {
         const cv::Mat tree_img =
             cv::imread(path_file, cv::IMREAD_UNCHANGED);
@@ -79,7 +81,7 @@ namespace InSomnia
             InSomnia::clear_alpha(tree_img_rgba);
         
         const int target_height =
-            static_cast<int>(height * 0.8);
+            static_cast<int>(height * scale);
         const int target_width = static_cast<int>(
             tree_img_rgba_clear.cols * (
                 (float)target_height / tree_img_rgba_clear.rows));
