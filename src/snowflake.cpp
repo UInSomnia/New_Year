@@ -19,6 +19,8 @@ namespace InSomnia
         const uint32_t height,
         const cv::Mat &original_img)
     {
+        static constexpr float scale_global = 0.7;
+        
         this->need_remove = false;
         
         static std::random_device rd;
@@ -58,6 +60,8 @@ namespace InSomnia
         {
             this->scale = small_dist(gen);
         }
+        
+        this->scale = this->scale * scale_global;
         
         const int target_height =
             static_cast<int>(height * this->scale);

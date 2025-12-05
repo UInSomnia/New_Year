@@ -6,6 +6,7 @@
 #include "fir.h"
 #include "light.h"
 #include "hare.h"
+#include "snow_cover.h"
 #include "toolbox.h"
 
 // Добавить блеск снежинок
@@ -16,10 +17,10 @@ int main()
     
     // 3840 x 2160
     // 1920 x 1080
-    static constexpr int width = 1920;
-    static constexpr int height = 1080;
+    static constexpr int width = 3840;
+    static constexpr int height = 2160;
     static constexpr int fps = 60;
-    static constexpr double duration_sec = 15.0;
+    static constexpr double duration_sec = 200.0;
     static const int total_frames =
         static_cast<int>(duration_sec * fps);
     static const int type = CV_8UC3;
@@ -35,7 +36,7 @@ int main()
     
     std::vector<InSomnia::Interval_Snow> schedule_snowfall =
     {
-        { 2., 10., 200, 0, 0 }
+        { 0., 30., 200, 0, 0 }
         // { 30., 50., 500, 0, 0 }
     };
     
@@ -133,6 +134,10 @@ int main()
         start_x,
         jump_interval);
     
+    // Snow cover
+    
+    InSomnia::Snow_Cover snow_cover;
+    
     // Video
     
     static const std::string path_file_video =
@@ -157,6 +162,11 @@ int main()
         cv::Mat frame =
             cv::Mat::zeros(height, width, type);
         
+        
+        snow_cover.render(
+            frame_idx,
+            total_frames,
+            frame);
         
         snowfall.render(
             frame_idx,
@@ -184,9 +194,12 @@ int main()
         
         if ((frame_idx + 1) % fps == 0)
         {
+            const float ratio =
+                static_cast<float>(frame_idx + 1) / total_frames;
+            
             std::cout << std::format(
-                "Записано кадров: {} из {}\n",
-                frame_idx + 1, total_frames);
+                "Записано кадров: {} из {} ({:.2f} %)\n",
+                frame_idx + 1, total_frames, 100.f * ratio);
             std::cout.flush();
         }
     }

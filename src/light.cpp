@@ -244,7 +244,7 @@ namespace InSomnia
             // radius_base + 2. * num_mode / count_state_lamps;
             this->radius_base *
                 (
-                    1. + 0.5 * this->num_mode /
+                    1. + 0.25 * this->num_mode /
                     this->count_state_lamps
                 );
         
